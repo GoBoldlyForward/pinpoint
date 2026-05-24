@@ -120,8 +120,12 @@
 .pinpoint-panel__close:hover { background: var(--pp-bg-soft); color: var(--pp-fg); }
 .pinpoint-panel__close svg { width: 14px; height: 14px; }
 
-.pinpoint-panel__actions {
-  padding: 12px 14px;
+.pinpoint-panel__hint {
+  margin: 0;
+  padding: 10px 14px 12px;
+  color: var(--pp-fg-muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .pinpoint-panel__section {
@@ -342,7 +346,8 @@
 .pinpoint-dialog {
   position: absolute;
   z-index: 2147483700;
-  width: 280px;
+  width: 432px;
+  max-width: calc(100vw - 32px);
   padding: 12px;
   background: #ffffff;
   color: #0f172a;
@@ -394,7 +399,6 @@
 .pinpoint-dialog__thumb {
   display: block;
   width: 100%;
-  max-width: 256px;
   height: auto;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
@@ -405,7 +409,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120px;
+  aspect-ratio: 2 / 1;
   color: #94a3b8;
   font-size: 12px;
   font-style: italic;

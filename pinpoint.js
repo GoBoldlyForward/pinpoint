@@ -20,7 +20,8 @@
     storage: "session",
     storageKey: "pinpoint:pins",
     screenshot: true,
-    screenshotSize: 200,
+    screenshotWidth: 400,
+    screenshotHeight: 200,
     html2canvasUrl:
       "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",
     keyboardTrigger: null,
@@ -81,12 +82,15 @@
     destroy() {
       this._exitPinMode({ silent: true });
       this._closePanel();
+      this._closeComposer();
+      this._closeDetails();
       document.removeEventListener("keydown", this._onEsc);
       document.removeEventListener("keydown", this._onKeyboardTrigger);
       document.removeEventListener("click", this._onDocClick, true);
-      if (this._els.root && this._els.root.parentNode) {
-        this._els.root.parentNode.removeChild(this._els.root);
-      }
+      ["root", "layer", "composer", "details"].forEach((k) => {
+        const el = this._els[k];
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      });
       this._els = {};
       this._started = false;
       return this;
@@ -231,11 +235,7 @@
       trigger.innerHTML = `<span class="pinpoint-trigger__icon">${ICON_PIN}</span>`;
       trigger.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (this.mode === "pin") {
-          this.disable();
-        } else {
-          this._togglePanel();
-        }
+        this._togglePanel();
       });
       this._els.trigger = trigger;
       this._els.root.appendChild(trigger);
@@ -295,12 +295,14 @@
       this._els.root.appendChild(panel);
       this._els.panel = panel;
       this._wirePanel(panel);
+      this._enterPinMode();
     }
 
     _closePanel() {
       if (!this._els.panel) return;
       this._els.panel.remove();
       this._els.panel = null;
+      this._exitPinMode({ silent: true });
     }
 
     _refreshPanel() {
@@ -339,9 +341,7 @@
           <strong>Pinpoint</strong>
           <button type="button" class="pinpoint-panel__close" aria-label="Close">${ICON_CLOSE}</button>
         </header>
-        <div class="pinpoint-panel__actions">
-          <button type="button" class="pinpoint-btn pinpoint-btn--primary" data-action="drop">Drop a pin</button>
-        </div>
+        <p class="pinpoint-panel__hint">Click anywhere on the page to drop a pin.</p>
         <section class="pinpoint-panel__section">
           <label class="pinpoint-panel__label">Position</label>
           <div class="pinpoint-panel__positions">${positionButtons}</div>
@@ -363,12 +363,6 @@
       panel
         .querySelector(".pinpoint-panel__close")
         ?.addEventListener("click", () => this._closePanel());
-      panel
-        .querySelector('[data-action="drop"]')
-        ?.addEventListener("click", () => {
-          this._closePanel();
-          this.enable();
-        });
       panel
         .querySelector('[data-action="export"]')
         ?.addEventListener("click", () => this.exportFile());
@@ -403,7 +397,6 @@
 
     _enterPinMode() {
       if (this.mode === "pin") return;
-      this._closePanel();
       this._closeDetails();
       this.mode = "pin";
       document.documentElement.classList.add("pinpoint-active");
@@ -437,13 +430,10 @@
       if (this._isInsideWidget(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
-      const x = e.pageX;
-      const y = e.pageY;
-      this._exitPinMode();
-      this._createPinAt(x, y, e.clientX, e.clientY);
+      this._createPinAt(e.pageX, e.pageY);
     }
 
-    async _createPinAt(pageX, pageY, clientX, clientY) {
+    async _createPinAt(pageX, pageY) {
       const viewport = this._viewportDims();
       const docDims = this._docDims();
       const pin = {
@@ -461,15 +451,21 @@
         createdAt: new Date().toISOString(),
       };
 
+      // Pause pin mode while we capture + show the composer so the overlay
+      // is gone for the screenshot and a click on the composer doesn't drop
+      // a second pin.
+      const wasInPinMode = this.mode === "pin";
+      if (wasInPinMode) this._exitPinMode({ silent: true });
+
       if (this.opts.screenshot) {
         try {
-          pin.thumbnail = await this._captureThumb(clientX, clientY);
+          pin.thumbnail = await this._captureThumb(pageX, pageY);
         } catch (e) {
           console.warn("[pinpoint] screenshot capture failed:", e.message);
         }
       }
 
-      this._openComposer(pin);
+      this._openComposer(pin, { resumePinMode: wasInPinMode });
     }
 
     _savePin(pin) {
@@ -485,7 +481,7 @@
 
     // ─── Composer (new-pin dialog) ──────────────────────────────
 
-    _openComposer(pin) {
+    _openComposer(pin, { resumePinMode = false } = {}) {
       this._closeComposer();
       this._closeDetails();
       const dialog = document.createElement("div");
@@ -506,27 +502,26 @@
       `;
       document.body.appendChild(dialog);
       this._els.composer = dialog;
+      this._composerResume = resumePinMode;
       this._positionDialog(dialog, pin);
 
       const ta = dialog.querySelector(".pinpoint-dialog__body");
       setTimeout(() => ta && ta.focus(), 0);
+
+      const save = () => {
+        pin.body = ta.value.trim();
+        this._savePin(pin);
+        this._closeComposer();
+      };
 
       dialog
         .querySelector('[data-action="cancel"]')
         .addEventListener("click", () => this._closeComposer());
       dialog
         .querySelector('[data-action="save"]')
-        .addEventListener("click", () => {
-          pin.body = ta.value.trim();
-          this._savePin(pin);
-          this._closeComposer();
-        });
+        .addEventListener("click", save);
       ta.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-          pin.body = ta.value.trim();
-          this._savePin(pin);
-          this._closeComposer();
-        }
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save();
       });
     }
 
@@ -534,6 +529,12 @@
       if (!this._els.composer) return;
       this._els.composer.remove();
       this._els.composer = null;
+      // Resume pin mode if it was active before the composer opened and the
+      // panel is still around to signal "feedback session in progress".
+      if (this._composerResume && this._els.panel) {
+        this._enterPinMode();
+      }
+      this._composerResume = false;
     }
 
     // ─── Details popover ─────────────────────────────────────────
@@ -604,25 +605,22 @@
       return this._h2cPromise;
     }
 
-    async _captureThumb(clientX, clientY) {
+    async _captureThumb(pageX, pageY) {
       await this._ensureHtml2canvas();
       if (typeof window.html2canvas !== "function") {
         throw new Error("html2canvas not available");
       }
-      const size = this.opts.screenshotSize;
-      const half = size / 2;
-      const scrollX = window.scrollX || window.pageXOffset;
-      const scrollY = window.scrollY || window.pageYOffset;
-      const captureLeft = Math.max(0, scrollX + clientX - half);
-      const captureTop = Math.max(0, scrollY + clientY - half);
+      const w = this.opts.screenshotWidth;
+      const h = this.opts.screenshotHeight;
+      const docDims = this._docDims();
+      const cropX = Math.max(0, Math.min(pageX - w / 2, docDims.width - w));
+      const cropY = Math.max(0, Math.min(pageY - h / 2, docDims.height - h));
 
       const canvas = await window.html2canvas(document.body, {
-        x: captureLeft,
-        y: captureTop,
-        width: size,
-        height: size,
-        windowWidth: document.documentElement.scrollWidth,
-        windowHeight: document.documentElement.scrollHeight,
+        x: cropX,
+        y: cropY,
+        width: w,
+        height: h,
         useCORS: true,
         logging: false,
         backgroundColor: null,
@@ -630,7 +628,8 @@
           el.classList &&
           (el.classList.contains("pinpoint") ||
             el.classList.contains("pinpoint-layer") ||
-            el.classList.contains("pinpoint-dialog")),
+            el.classList.contains("pinpoint-dialog") ||
+            el.classList.contains("pinpoint-marker")),
       });
       return canvas.toDataURL("image/png");
     }
@@ -671,8 +670,13 @@
 
     _onDocClick(e) {
       if (!this._els.panel) return;
-      if (this._els.panel.contains(e.target)) return;
-      if (this._els.trigger.contains(e.target)) return;
+      // In the new design the panel is only open while pin mode or a
+      // transient dialog is active, and those self-manage. Outside clicks
+      // never need to close the panel — the trigger toggle, the panel's
+      // own X, and Esc are the only ways out.
+      if (this.mode === "pin") return;
+      if (this._els.composer || this._els.details) return;
+      if (this._isInsideWidget(e.target)) return;
       this._closePanel();
     }
 
@@ -692,10 +696,16 @@
         this.opts.storage = DEFAULTS.storage;
       }
       if (
-        typeof this.opts.screenshotSize !== "number" ||
-        this.opts.screenshotSize < 50
+        typeof this.opts.screenshotWidth !== "number" ||
+        this.opts.screenshotWidth < 50
       ) {
-        this.opts.screenshotSize = DEFAULTS.screenshotSize;
+        this.opts.screenshotWidth = DEFAULTS.screenshotWidth;
+      }
+      if (
+        typeof this.opts.screenshotHeight !== "number" ||
+        this.opts.screenshotHeight < 50
+      ) {
+        this.opts.screenshotHeight = DEFAULTS.screenshotHeight;
       }
     }
 

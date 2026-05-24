@@ -1,6 +1,6 @@
 # pinpoint
 
-Drop-in feedback widget for any web page. A floating trigger button lets your users click anywhere on the page, capture a 200&times;200 thumbnail of the area, and attach a comment. Pins persist in `sessionStorage` by default — no backend required.
+Drop-in feedback widget for any web page. A floating trigger button lets your users click anywhere on the page, capture a 400&times;200 thumbnail of the area, and attach a comment. Pins persist in `sessionStorage` by default — no backend required.
 
 ## Demo
 
@@ -9,11 +9,11 @@ Drop-in feedback widget for any web page. A floating trigger button lets your us
 ## What it does
 
 - A round trigger button floats in a corner of your page (configurable: any of the four corners).
-- Click it to open a tiny settings panel: drop a pin, change position, list/export/clear pins.
-- Click **Drop a pin** → the cursor turns into a crosshair → click anywhere on the page to mark a spot.
-- A 200&times;200 screenshot of the surrounding area is captured (via [html2canvas](https://html2canvas.hertzen.com/), lazy-loaded from a CDN on first use).
-- A composer popover opens at the pin location for a comment.
-- Pins render as numbered teardrop markers on the page. Click a marker to read or delete it.
+- Click it: the settings panel opens **and** pin mode is on. Click anywhere on the page to drop a pin.
+- A 400&times;200 screenshot of the area around the click is captured (via [html2canvas](https://html2canvas.hertzen.com/), lazy-loaded from a CDN on first use).
+- A composer popover opens at the pin location for a comment. Save with the button or `Cmd/Ctrl + Enter`.
+- Pins render as numbered teardrop markers on the page. Click a marker any time to read or delete it.
+- Click the trigger again (or the panel's X) to close the panel and exit pin mode.
 - Everything persists in `sessionStorage` (configurable to `localStorage` or in-memory).
 
 No framework, no build step, no backend. Drop in the CSS + JS and you're done.
@@ -54,7 +54,8 @@ new Pinpoint({
   storage:         'session',      // 'session' | 'local' | 'memory'
   storageKey:      'pinpoint:pins',
   screenshot:      true,
-  screenshotSize:  200,            // px; min 50
+  screenshotWidth:  400,           // px; min 50
+  screenshotHeight: 200,           // px; min 50
   html2canvasUrl:  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   keyboardTrigger: null,           // e.g. 'shift+meta+f'
   autoStart:       true,
@@ -93,7 +94,7 @@ pinpoint.destroy();
   viewport:   { width: 1440, height: 900 },
   document:   { width: 1440, height: 1640 },
   body:       'Misaligned button',
-  thumbnail:  'data:image/png;base64,…', // 200x200 PNG, or null
+  thumbnail:  'data:image/png;base64,…', // 400x200 PNG, or null
   pageUrl:    'https://example.com/page',
   pageTitle:  'Example',
   createdAt:  '2026-05-23T14:02:11.000Z',

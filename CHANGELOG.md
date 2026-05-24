@@ -8,9 +8,12 @@ no backend.
 ### Features
 - Floating trigger button in a configurable corner (`top-left`, `top-right`,
   `bottom-left`, `bottom-right`); end-users can re-position from the panel.
-- Pin mode: crosshair cursor + page tint, click anywhere to drop a pin,
-  `Esc` to cancel.
-- 200&times;200 screenshot of the area around each click, captured via
+- One-click pin mode: opening the panel **is** entering pin mode. No
+  separate "drop a pin" button — once the panel is open, clicking
+  anywhere on the page drops a pin. Click the trigger again (or the
+  panel's X) to close the panel and exit pin mode. Crosshair cursor +
+  page tint signal the active state.
+- 400&times;200 screenshot of the area around each click, captured via
   [html2canvas](https://html2canvas.hertzen.com/) — lazy-loaded from a CDN
   the first time pin mode is entered. Graceful degradation if blocked.
 - Inline composer popover for the pin's comment, with `Cmd/Ctrl + Enter`

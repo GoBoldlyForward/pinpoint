@@ -122,7 +122,7 @@
     <div class="gbf-container">
       <p class="gbf-eyebrow">Plugin</p>
       <h1 class="gbf-title">pinpoint</h1>
-      <p class="gbf-tagline">Drop-in feedback widget. A floating button lets your users click anywhere on a page, capture a 200&times;200 thumbnail of the area, and attach a comment. Pins persist in <code>sessionStorage</code> by default — no backend required.</p>
+      <p class="gbf-tagline">Drop-in feedback widget. A floating button lets your users click anywhere on a page, capture a 400&times;200 thumbnail of the area, and attach a comment. Pins persist in <code>sessionStorage</code> by default — no backend required.</p>
       <code class="gbf-install">npm install @goboldlyforward/pinpoint</code>
       <nav class="gbf-nav">
         <a href="https://github.com/GoBoldlyForward/pinpoint">GitHub</a>
@@ -137,7 +137,7 @@
     <div class="gbf-container">
       <p class="gbf-eyebrow gbf-eyebrow--accent">Demo</p>
       <h2 class="gbf-section__title">Click the pin, drop feedback anywhere</h2>
-      <p class="gbf-section__lede">The trigger button is live in the bottom-left corner of this page. Open it, click <strong>Drop a pin</strong>, then click anywhere on the page to leave feedback. Pins persist in this tab until you close it.</p>
+      <p class="gbf-section__lede">The trigger button is live in the bottom-left corner of this page. Click it: the panel opens and pin mode is on — click anywhere on the page to drop a pin. Click the trigger again to exit. Pins persist in this tab until you close it.</p>
 
       <div class="pinpoint-demo">
         <div class="pinpoint-demo__card">
@@ -203,7 +203,8 @@
   storage:         'session',                                      // 'session' | 'local' | 'memory'
   storageKey:      'pinpoint:pins',                                // where pins live in storage
   screenshot:      true,                                           // capture 200x200 thumbnail
-  screenshotSize:  200,                                            // px (min 50)
+  screenshotWidth:  400,                                           // px (min 50)
+  screenshotHeight: 200,
   html2canvasUrl:  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   keyboardTrigger: 'shift+meta+f',                                 // optional global hotkey
   autoStart:       true,                                           // mount on construction
