@@ -1,0 +1,73 @@
+<div class="pp-stats">
+  <div class="pp-stat">
+    <strong><%= @status_counts.values.sum %></strong>
+    Total
+  </div>
+  <div class="pp-stat">
+    <strong><%= @status_counts["open"] || 0 %></strong>
+    Open
+  </div>
+  <div class="pp-stat">
+    <strong><%= @status_counts["acknowledged"] || 0 %></strong>
+    Acknowledged
+  </div>
+  <div class="pp-stat">
+    <strong><%= @status_counts["resolved"] || 0 %></strong>
+    Resolved
+  </div>
+</div>
+
+<div class="pp-filters">
+  <%= link_to "All", dashboard_index_path,
+      class: "pp-filter-link #{'active' unless params[:status].present?}" %>
+  <%= link_to "Open", dashboard_index_path(status: "open"),
+      class: "pp-filter-link #{'active' if params[:status] == 'open'}" %>
+  <%= link_to "Acknowledged", dashboard_index_path(status: "acknowledged"),
+      class: "pp-filter-link #{'active' if params[:status] == 'acknowledged'}" %>
+  <%= link_to "Resolved", dashboard_index_path(status: "resolved"),
+      class: "pp-filter-link #{'active' if params[:status] == 'resolved'}" %>
+
+  <% if @page_urls.length > 1 %>
+    &nbsp;|&nbsp;
+    <% @page_urls.each do |url| %>
+      <%= link_to url, dashboard_index_path(page_url: url, status: params[:status]),
+          class: "pp-filter-link #{'active' if params[:page_url] == url}" %>
+    <% end %>
+  <% end %>
+</div>
+
+<% if @pins.empty? %>
+  <div class="pp-empty">
+    <div class="pp-empty-icon">&#x1F4CC;</div>
+    <p>No feedback pins yet.</p>
+    <p class="pp-meta" style="margin-top: 8px;">
+      Pins will appear here once users start dropping feedback on your app.
+    </p>
+  </div>
+<% else %>
+  <% @pins.each do |pin| %>
+    <div class="pp-card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <span class="pp-badge pp-badge-<%= pin.status %>"><%= pin.status %></span>
+          &nbsp;
+          <strong><%= link_to pin.page_url, dashboard_path(pin) %></strong>
+        </div>
+        <span class="pp-meta"><%= time_ago_in_words(pin.created_at) %> ago</span>
+      </div>
+
+      <% if pin.body.present? %>
+        <p style="margin-top: 8px;"><%= pin.body %></p>
+      <% end %>
+
+      <div class="pp-meta" style="margin-top: 8px;">
+        By <%= pin.creator %>
+        &middot; <%= pin.viewport_width %>&times;<%= pin.viewport_height %>
+        &middot; Pin at (<%= pin.x_percent.round(1) %>%, <%= pin.y_percent.round(1) %>%)
+        <% if pin.comments.any? %>
+          &middot; <%= pin.comments.size %> comment<%= pin.comments.size == 1 ? "" : "s" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

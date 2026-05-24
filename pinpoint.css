@@ -1,0 +1,476 @@
+/*!
+ * Pinpoint plugin styles
+ * https://github.com/GoBoldlyForward/pinpoint
+ * Scoped under .pinpoint*, .pinpoint-layer, and html.pinpoint-active.
+ */
+
+.pinpoint {
+  --pp-accent: #dc2626;
+  --pp-accent-hover: #b91c1c;
+  --pp-fg: #0f172a;
+  --pp-fg-muted: #64748b;
+  --pp-bg: #ffffff;
+  --pp-bg-soft: #f8fafc;
+  --pp-border: #e2e8f0;
+  --pp-shadow: 0 10px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.06);
+  --pp-radius: 10px;
+  --pp-radius-sm: 6px;
+  --pp-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Inter",
+    "Helvetica Neue", Arial, sans-serif;
+
+  position: fixed;
+  z-index: 2147483600;
+  font-family: var(--pp-font);
+  color: var(--pp-fg);
+  -webkit-font-smoothing: antialiased;
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pinpoint {
+    --pp-accent: #f87171;
+    --pp-accent-hover: #ef4444;
+    --pp-fg: #f1f5f9;
+    --pp-fg-muted: #94a3b8;
+    --pp-bg: #0f172a;
+    --pp-bg-soft: #1e293b;
+    --pp-border: #334155;
+    --pp-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.pinpoint[data-position="bottom-left"]  { left: 20px;  bottom: 20px; }
+.pinpoint[data-position="bottom-right"] { right: 20px; bottom: 20px; }
+.pinpoint[data-position="top-left"]     { left: 20px;  top: 20px;    }
+.pinpoint[data-position="top-right"]    { right: 20px; top: 20px;    }
+
+.pinpoint > * {
+  pointer-events: auto;
+}
+
+/* ─── Trigger button ────────────────────────────────────────────── */
+
+.pinpoint-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--pp-shadow);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.pinpoint-trigger:hover  { background: var(--pp-accent-hover); transform: translateY(-1px); }
+.pinpoint-trigger:active { transform: translateY(0); }
+.pinpoint-trigger:focus-visible {
+  outline: 2px solid var(--pp-accent);
+  outline-offset: 3px;
+}
+.pinpoint-trigger.is-active {
+  background: var(--pp-fg);
+  color: var(--pp-bg);
+}
+
+.pinpoint-trigger__icon { display: inline-flex; width: 22px; height: 22px; }
+.pinpoint-trigger__icon svg { width: 100%; height: 100%; }
+
+/* ─── Settings/list panel ───────────────────────────────────────── */
+
+.pinpoint-panel {
+  position: absolute;
+  width: 300px;
+  max-height: 70vh;
+  overflow: auto;
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--pp-radius);
+  box-shadow: var(--pp-shadow);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.pinpoint[data-position^="bottom"] .pinpoint-panel { bottom: 60px; }
+.pinpoint[data-position^="top"]    .pinpoint-panel { top: 60px;    }
+.pinpoint[data-position$="left"]   .pinpoint-panel { left: 0;       }
+.pinpoint[data-position$="right"]  .pinpoint-panel { right: 0;      }
+
+.pinpoint-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--pp-border);
+  font-size: 14px;
+}
+.pinpoint-panel__close {
+  width: 24px; height: 24px;
+  border: 0;
+  padding: 0;
+  border-radius: var(--pp-radius-sm);
+  background: transparent;
+  color: var(--pp-fg-muted);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pinpoint-panel__close:hover { background: var(--pp-bg-soft); color: var(--pp-fg); }
+.pinpoint-panel__close svg { width: 14px; height: 14px; }
+
+.pinpoint-panel__actions {
+  padding: 12px 14px;
+}
+
+.pinpoint-panel__section {
+  padding: 12px 14px;
+  border-top: 1px solid var(--pp-border);
+}
+
+.pinpoint-panel__label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pp-fg-muted);
+  margin-bottom: 8px;
+}
+
+.pinpoint-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.pinpoint-panel__bulk { display: inline-flex; gap: 10px; }
+
+.pinpoint-panel__positions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.pinpoint-pos {
+  position: relative;
+  height: 32px;
+  border: 1px solid var(--pp-border);
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-bg);
+  cursor: pointer;
+  padding: 0;
+}
+.pinpoint-pos:hover  { border-color: var(--pp-accent); }
+.pinpoint-pos.is-active {
+  border-color: var(--pp-accent);
+  background: color-mix(in srgb, var(--pp-accent) 10%, transparent);
+}
+
+.pinpoint-pos__dot {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+}
+.pinpoint-pos__dot--top-left     { top: 4px;    left: 4px;   }
+.pinpoint-pos__dot--top-right    { top: 4px;    right: 4px;  }
+.pinpoint-pos__dot--bottom-left  { bottom: 4px; left: 4px;   }
+.pinpoint-pos__dot--bottom-right { bottom: 4px; right: 4px;  }
+
+.pinpoint-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pinpoint-panel__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pp-fg-muted);
+  font-style: italic;
+}
+
+.pinpoint-panel__item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  background: var(--pp-bg-soft);
+  border-radius: var(--pp-radius-sm);
+}
+.pinpoint-panel__open {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--pp-fg);
+  text-align: left;
+  min-width: 0;
+  border-radius: var(--pp-radius-sm);
+}
+.pinpoint-panel__open:hover { background: color-mix(in srgb, var(--pp-accent) 8%, transparent); }
+
+.pinpoint-panel__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.pinpoint-panel__preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.pinpoint-panel__del {
+  width: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--pp-fg-muted);
+  cursor: pointer;
+  border-radius: var(--pp-radius-sm);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pinpoint-panel__del:hover { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
+.pinpoint-panel__del svg   { width: 14px; height: 14px; }
+
+/* ─── Generic controls ──────────────────────────────────────────── */
+
+.pinpoint-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: var(--pp-radius-sm);
+  font: 500 13px var(--pp-font);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pinpoint-btn--primary {
+  background: var(--pp-accent);
+  color: #fff;
+  width: 100%;
+}
+.pinpoint-btn--primary:hover { background: var(--pp-accent-hover); }
+.pinpoint-btn--ghost {
+  background: transparent;
+  color: var(--pp-fg);
+  border-color: var(--pp-border);
+}
+.pinpoint-btn--ghost:hover { background: var(--pp-bg-soft); }
+
+.pinpoint-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: 500 12px var(--pp-font);
+  color: var(--pp-accent);
+}
+.pinpoint-link:hover         { text-decoration: underline; }
+.pinpoint-link[disabled]     { color: var(--pp-fg-muted); cursor: not-allowed; text-decoration: none; }
+.pinpoint-link--danger       { color: #ef4444; }
+
+/* ─── Pin layer + markers ───────────────────────────────────────── */
+
+.pinpoint-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 2147483500;
+}
+
+.pinpoint-marker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: var(--pinpoint-accent, #dc2626);
+  color: #fff;
+  font: 600 11px ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+  padding: 0;
+  pointer-events: auto;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pinpoint-marker > * { transform: rotate(45deg); /* counter the teardrop shape */ }
+.pinpoint-marker {
+  transform: translate(-50%, -100%) rotate(-45deg);
+}
+.pinpoint-marker:hover {
+  transform: translate(-50%, -100%) rotate(-45deg) scale(1.1);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+}
+.pinpoint-marker:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pinpoint-marker {
+    background: #f87171;
+    border-color: #0f172a;
+  }
+}
+
+/* ─── Dialogs (composer + details) ──────────────────────────────── */
+
+.pinpoint-dialog {
+  position: absolute;
+  z-index: 2147483700;
+  width: 280px;
+  padding: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.06);
+  font: 13px/1.4 ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pinpoint-dialog {
+    background: #0f172a;
+    color: #f1f5f9;
+    border-color: #334155;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.25);
+  }
+}
+
+.pinpoint-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.pinpoint-dialog__time {
+  font-size: 11px;
+  color: #64748b;
+}
+@media (prefers-color-scheme: dark) {
+  .pinpoint-dialog__time { color: #94a3b8; }
+}
+
+.pinpoint-dialog__close {
+  width: 22px; height: 22px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pinpoint-dialog__close:hover { background: #f1f5f9; color: #0f172a; }
+@media (prefers-color-scheme: dark) {
+  .pinpoint-dialog__close:hover { background: #1e293b; color: #f1f5f9; }
+}
+.pinpoint-dialog__close svg { width: 12px; height: 12px; }
+
+.pinpoint-dialog__thumb {
+  display: block;
+  width: 100%;
+  max-width: 256px;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 8px;
+  background: #f8fafc;
+}
+.pinpoint-dialog__thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: italic;
+}
+@media (prefers-color-scheme: dark) {
+  .pinpoint-dialog__thumb { border-color: #334155; background: #1e293b; }
+}
+
+.pinpoint-dialog__body {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font: 13px/1.4 inherit;
+  resize: vertical;
+  background: #ffffff;
+  color: inherit;
+}
+.pinpoint-dialog__body:focus {
+  outline: 2px solid #dc2626;
+  outline-offset: -2px;
+  border-color: transparent;
+}
+@media (prefers-color-scheme: dark) {
+  .pinpoint-dialog__body { background: #0f172a; border-color: #334155; }
+  .pinpoint-dialog__body:focus { outline-color: #f87171; }
+}
+
+.pinpoint-dialog__text {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.pinpoint-dialog__text--empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.pinpoint-dialog__actions,
+.pinpoint-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ─── Pin-mode body state ───────────────────────────────────────── */
+
+html.pinpoint-active,
+html.pinpoint-active body {
+  cursor: crosshair !important;
+}
+html.pinpoint-active .pinpoint,
+html.pinpoint-active .pinpoint *,
+html.pinpoint-active .pinpoint-dialog,
+html.pinpoint-active .pinpoint-dialog *,
+html.pinpoint-active .pinpoint-marker {
+  cursor: default !important;
+}
+html.pinpoint-active body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(220, 38, 38, 0.04);
+  z-index: 2147483400;
+}

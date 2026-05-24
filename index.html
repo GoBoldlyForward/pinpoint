@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>pinpoint — drop-in feedback widget</title>
+  <meta name="description" content="A floating button lets users click anywhere on a page, capture a 200x200 thumbnail, and attach a comment. Pins persist in sessionStorage by default — no backend required.">
+
+  <meta property="og:title" content="pinpoint — drop-in feedback widget">
+  <meta property="og:description" content="A floating button lets users click anywhere on a page, capture a 200x200 thumbnail, and attach a comment. Pins persist in sessionStorage by default — no backend required.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://goboldlyforward.github.io/pinpoint/">
+
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+  <link rel="stylesheet" href="pinpoint.css">
+  <link rel="stylesheet" href="demo.css">
+
+  <style>
+    :root {
+      --gbf-accent:      #dc2626;
+      --gbf-accent-soft: rgba(220, 38, 38, 0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --gbf-accent:      #f87171;
+        --gbf-accent-soft: rgba(248, 113, 113, 0.14);
+      }
+    }
+
+    .gbf-section h3 {
+      font-family: var(--gbf-font-sans);
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 2.5rem 0 0.75rem;
+    }
+    .gbf-section :not(pre) > code {
+      background: var(--gbf-bg-code);
+      border: 1px solid var(--gbf-border);
+      padding: 0.05rem 0.4rem;
+      border-radius: 4px;
+      font: 0.875em var(--gbf-font-mono);
+    }
+
+    /* The demo "page" — sample content for placing pins. */
+    .pinpoint-demo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 720px) {
+      .pinpoint-demo { grid-template-columns: 1fr; }
+    }
+
+    .pinpoint-demo__card {
+      padding: 1.25rem;
+      background: var(--gbf-bg);
+      border: 1px solid var(--gbf-border);
+      border-radius: 8px;
+    }
+    .pinpoint-demo__card h4 {
+      font-family: var(--gbf-font-sans);
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    .pinpoint-demo__card p {
+      margin: 0 0 0.75rem;
+      font-size: 0.9rem;
+      color: var(--gbf-fg-muted);
+    }
+
+    .pinpoint-demo__stub {
+      display: inline-flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .pinpoint-demo__stub button {
+      padding: 0.4rem 0.9rem;
+      font: 0.85rem var(--gbf-font-sans);
+      border: 1px solid var(--gbf-border);
+      background: var(--gbf-bg-soft);
+      color: var(--gbf-fg);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .pinpoint-demo__stub button.is-primary {
+      background: var(--gbf-accent);
+      color: #fff;
+      border-color: var(--gbf-accent);
+    }
+    .pinpoint-demo__stub input {
+      padding: 0.4rem 0.6rem;
+      border: 1px solid var(--gbf-border);
+      border-radius: 6px;
+      background: var(--gbf-bg);
+      color: var(--gbf-fg);
+      font: 0.85rem var(--gbf-font-sans);
+    }
+
+    .pinpoint-demo__placeholder {
+      width: 100%;
+      height: 120px;
+      background: var(--gbf-bg-soft);
+      border: 1px dashed var(--gbf-border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gbf-fg-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="gbf-header">
+    <div class="gbf-container">
+      <p class="gbf-eyebrow">Plugin</p>
+      <h1 class="gbf-title">pinpoint</h1>
+      <p class="gbf-tagline">Drop-in feedback widget. A floating button lets your users click anywhere on a page, capture a 200&times;200 thumbnail of the area, and attach a comment. Pins persist in <code>sessionStorage</code> by default — no backend required.</p>
+      <code class="gbf-install">npm install @goboldlyforward/pinpoint</code>
+      <nav class="gbf-nav">
+        <a href="https://github.com/GoBoldlyForward/pinpoint">GitHub</a>
+        <a href="https://www.npmjs.com/package/@goboldlyforward/pinpoint">npm</a>
+        <a href="https://github.com/GoBoldlyForward/pinpoint#readme">Docs</a>
+        <a href="https://github.com/GoBoldlyForward/pinpoint/blob/main/CHANGELOG.md">Changelog</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="gbf-section">
+    <div class="gbf-container">
+      <p class="gbf-eyebrow gbf-eyebrow--accent">Demo</p>
+      <h2 class="gbf-section__title">Click the pin, drop feedback anywhere</h2>
+      <p class="gbf-section__lede">The trigger button is live in the bottom-left corner of this page. Open it, click <strong>Drop a pin</strong>, then click anywhere on the page to leave feedback. Pins persist in this tab until you close it.</p>
+
+      <div class="pinpoint-demo">
+        <div class="pinpoint-demo__card">
+          <h4>Login form</h4>
+          <p>A sample form to leave feedback on. Try dropping a pin on the misaligned button.</p>
+          <div class="pinpoint-demo__stub">
+            <input type="text" placeholder="Email">
+            <button class="is-primary" style="margin-left: 8px; position: relative; top: 3px;">Sign in</button>
+          </div>
+        </div>
+
+        <div class="pinpoint-demo__card">
+          <h4>Hero image</h4>
+          <p>Pretend this is a marketing hero. Pin the copy, the placeholder, or the spacing.</p>
+          <div class="pinpoint-demo__placeholder">[ hero image goes here ]</div>
+        </div>
+
+        <div class="pinpoint-demo__card">
+          <h4>Pricing card</h4>
+          <p>$19 / month for the basic plan. Want to flag a confusing label or a typo? Drop a pin.</p>
+          <div class="pinpoint-demo__stub">
+            <button>Choose plan</button>
+          </div>
+        </div>
+
+        <div class="pinpoint-demo__card">
+          <h4>Empty state</h4>
+          <p>Empty states are notoriously bad. Pin the parts that would confuse a first-time user.</p>
+          <div class="pinpoint-demo__placeholder">No items yet.</div>
+        </div>
+      </div>
+
+      <p style="margin-top: 2rem;"><strong>Tip:</strong> open the trigger button and try the position picker, the pin list, and the export button. Press <kbd>Esc</kbd> to cancel pin mode.</p>
+    </div>
+  </section>
+
+  <section class="gbf-section">
+    <div class="gbf-container">
+      <p class="gbf-eyebrow gbf-eyebrow--accent">Install &amp; usage</p>
+      <h2 class="gbf-section__title">Drop it in</h2>
+      <p class="gbf-section__lede">One stylesheet, one script. No framework, no build step. Screenshots use <a href="https://html2canvas.hertzen.com/">html2canvas</a>, lazy-loaded from a CDN the first time you enter pin mode.</p>
+      <pre class="gbf-code"><code>&lt;link rel="stylesheet" href="path/to/pinpoint.css"&gt;
+&lt;script src="path/to/pinpoint.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  const pinpoint = new Pinpoint({
+    position: 'bottom-left',     // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+    storage:  'session',         // 'session' | 'local' | 'memory'
+    screenshot: true,
+    keyboardTrigger: 'shift+meta+f',
+  });
+&lt;/script&gt;</code></pre>
+      <p>That's all the integration. The widget auto-mounts on <code>DOMContentLoaded</code>. Pin clicks are intercepted only while the user is in pin mode; the rest of the time the trigger button is the only Pinpoint UI on the page.</p>
+    </div>
+  </section>
+
+  <section class="gbf-section">
+    <div class="gbf-container">
+      <p class="gbf-eyebrow gbf-eyebrow--accent">API</p>
+      <h2 class="gbf-section__title">Options</h2>
+      <pre class="gbf-code"><code>new Pinpoint({
+  position:        'bottom-left',                                  // initial corner
+  storage:         'session',                                      // 'session' | 'local' | 'memory'
+  storageKey:      'pinpoint:pins',                                // where pins live in storage
+  screenshot:      true,                                           // capture 200x200 thumbnail
+  screenshotSize:  200,                                            // px (min 50)
+  html2canvasUrl:  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+  keyboardTrigger: 'shift+meta+f',                                 // optional global hotkey
+  autoStart:       true,                                           // mount on construction
+  showMarkers:     true,                                           // render persisted pin dots
+  onPinAdd:        (pin) =&gt; {},                                    // hook: pin saved
+  onPinDelete:     (pin) =&gt; {},                                    // hook: pin removed
+  onPinClick:      (pin) =&gt; {},                                    // hook: marker opened
+});</code></pre>
+
+      <h2 class="gbf-section__title" style="margin-top: 2.5rem;">Methods</h2>
+      <pre class="gbf-code"><code>pinpoint.enable();         // enter pin mode
+pinpoint.disable();        // leave pin mode
+pinpoint.toggle();
+pinpoint.setPosition('top-right');
+pinpoint.getPins();        // returns shallow copies
+pinpoint.deletePin(id);
+pinpoint.clear();
+pinpoint.exportJSON();     // returns JSON string
+pinpoint.exportFile();     // downloads pinpoint-pins.json
+pinpoint.importJSON(json); // bulk-load
+pinpoint.destroy();        // unmount + unbind</code></pre>
+    </div>
+  </section>
+
+  <section class="gbf-section">
+    <div class="gbf-container">
+      <p class="gbf-eyebrow gbf-eyebrow--accent">Pin shape</p>
+      <h2 class="gbf-section__title">What gets stored</h2>
+      <p class="gbf-section__lede">Each pin is a plain object — easy to ship to a backend later if you wire up <code>onPinAdd</code>.</p>
+      <pre class="gbf-code"><code>{
+  id:         'pin-l9wq4z-x4f2k1',
+  x:          452,                       // px from document left
+  y:          1280,                      // px from document top
+  xPercent:   0.31,                      // x as fraction of document width
+  yPercent:   0.78,                      // y as fraction of document height
+  viewport:   { width: 1440, height: 900 },
+  document:   { width: 1440, height: 1640 },
+  body:       'Misaligned button',
+  thumbnail:  'data:image/png;base64,…', // 200x200 PNG, or null
+  pageUrl:    'https://example.com/page',
+  pageTitle:  'Example',
+  createdAt:  '2026-05-23T14:02:11.000Z',
+}</code></pre>
+    </div>
+  </section>
+
+  <footer class="gbf-footer">
+    <div class="gbf-container gbf-footer__row">
+      <span>&copy; <span id="current-year"></span> by <a href="https://morganjlopes.com">Morgan Lopes</a>. <a href="https://www.goboldlyforward.com">Go Boldly Forward!</a></span>
+    </div>
+  </footer>
+
+  <script src="pinpoint.js"></script>
+  <script>
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    window.pinpoint = new Pinpoint({
+      position: 'bottom-left',
+      storage:  'session',
+      keyboardTrigger: 'shift+meta+f',
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "name": "@goboldlyforward/pinpoint",
+  "version": "0.1.0",
+  "description": "Drop-in feedback widget. A floating trigger button lets users click anywhere on a page, capture a 200x200 thumbnail, and attach a comment. Pins persist in sessionStorage by default — no backend required.",
+  "main": "pinpoint.js",
+  "style": "pinpoint.css",
+  "files": [
+    "pinpoint.js",
+    "pinpoint.css",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GoBoldlyForward/pinpoint.git"
+  },
+  "keywords": [
+    "feedback",
+    "annotation",
+    "bug-report",
+    "pin",
+    "widget",
+    "screenshot",
+    "html2canvas",
+    "vanilla-js"
+  ],
+  "author": "Go Boldly Forward",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/GoBoldlyForward/pinpoint/issues"
+  },
+  "homepage": "https://goboldlyforward.github.io/pinpoint/"
+}

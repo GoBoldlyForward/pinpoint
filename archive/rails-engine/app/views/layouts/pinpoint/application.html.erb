@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pinpoint — Feedback Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f9fafb;
+        color: #1f2937;
+        line-height: 1.5;
+      }
+
+      .pp-layout {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .pp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0 24px;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 24px;
+      }
+      .pp-header h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+      }
+      .pp-header h1 span { color: #6366f1; }
+
+      .pp-notice {
+        padding: 10px 14px;
+        background: #ecfdf5;
+        color: #065f46;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 13px;
+      }
+
+      a { color: #6366f1; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      .pp-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .pp-badge-open { background: #fef3c7; color: #92400e; }
+      .pp-badge-acknowledged { background: #dbeafe; color: #1e40af; }
+      .pp-badge-resolved { background: #d1fae5; color: #065f46; }
+
+      .pp-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: box-shadow 0.15s ease;
+      }
+      .pp-card:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+
+      .pp-meta {
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .pp-filters {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      .pp-filter-link {
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        background: white;
+        display: inline-block;
+      }
+      .pp-filter-link:hover { background: #f3f4f6; text-decoration: none; }
+      .pp-filter-link.active {
+        background: #6366f1;
+        color: white;
+        border-color: #6366f1;
+      }
+
+      .pp-btn {
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        background: white;
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+        color: #374151;
+        display: inline-block;
+      }
+      .pp-btn:hover { background: #f9fafb; }
+      .pp-btn-danger { color: #dc2626; border-color: #fca5a5; }
+      .pp-btn-danger:hover { background: #fef2f2; }
+
+      .pp-screenshot-container {
+        position: relative;
+        display: inline-block;
+        margin: 12px 0;
+        max-width: 100%;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+      }
+      .pp-screenshot-container img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      .pp-screenshot-pin {
+        position: absolute;
+        font-size: 24px;
+        transform: translate(-50%, -100%);
+        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+      }
+
+      .pp-comments {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #f3f4f6;
+      }
+      .pp-comment {
+        padding: 8px 0;
+        font-size: 13px;
+      }
+      .pp-comment + .pp-comment {
+        border-top: 1px solid #f3f4f6;
+      }
+
+      .pp-empty {
+        text-align: center;
+        padding: 48px 16px;
+        color: #9ca3af;
+      }
+      .pp-empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+      .pp-stats {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .pp-stat {
+        padding: 8px 16px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      .pp-stat strong { font-size: 18px; display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="pp-layout">
+      <div class="pp-header">
+        <h1>&#x1F4CC; Pinpoint</h1>
+      </div>
+
+      <% if notice.present? %>
+        <div class="pp-notice"><%= notice %></div>
+      <% end %>
+
+      <%= yield %>
+    </div>
+  </body>
+</html>

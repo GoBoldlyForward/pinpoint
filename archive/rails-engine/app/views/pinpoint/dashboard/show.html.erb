@@ -1,0 +1,82 @@
+<p style="margin-bottom: 16px;">
+  <%= link_to "&larr; Back to all pins".html_safe, dashboard_index_path %>
+</p>
+
+<div class="pp-card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+    <div>
+      <span class="pp-badge pp-badge-<%= @pin.status %>"><%= @pin.status %></span>
+      &nbsp;
+      <strong><%= @pin.page_url %></strong>
+      <% if @pin.page_title.present? %>
+        <span class="pp-meta"> &mdash; <%= @pin.page_title %></span>
+      <% end %>
+    </div>
+    <span class="pp-meta"><%= @pin.created_at.strftime("%b %-d, %Y at %-I:%M %p") %></span>
+  </div>
+
+  <% if @pin.body.present? %>
+    <p style="margin-bottom: 12px; font-size: 15px;"><%= @pin.body %></p>
+  <% end %>
+
+  <div class="pp-meta" style="margin-bottom: 16px;">
+    By <strong><%= @pin.creator %></strong>
+    &middot; Viewport: <%= @pin.viewport_width %>&times;<%= @pin.viewport_height %>
+    <% if @pin.page_width.present? %>
+      &middot; Page: <%= @pin.page_width %>&times;<%= @pin.page_height %>
+    <% end %>
+    &middot; Pin at (<%= @pin.x_percent.round(1) %>%, <%= @pin.y_percent.round(1) %>%)
+  </div>
+
+  <% if @pin.screenshot.attached? %>
+    <div class="pp-screenshot-container">
+      <%= image_tag rails_blob_path(@pin.screenshot, only_path: true),
+          alt: "Screenshot",
+          style: "max-width: 100%;" %>
+      <div class="pp-screenshot-pin"
+           style="left: <%= @pin.x_percent %>%; top: <%= @pin.y_percent %>%;">
+        &#x1F4CD;
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Status actions -->
+  <div style="margin-top: 16px; display: flex; gap: 8px; align-items: center;">
+    <span class="pp-meta" style="margin-right: 8px;">Change status:</span>
+    <% %w[open acknowledged resolved].each do |status| %>
+      <% unless @pin.status == status %>
+        <%= form_with url: dashboard_path(@pin), method: :patch, local: true, style: "display: inline;" do |f| %>
+          <%= f.hidden_field :status, value: status %>
+          <%= f.submit status.capitalize, class: "pp-btn" %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <span style="flex: 1;"></span>
+
+    <%= form_with url: dashboard_path(@pin), method: :delete, local: true,
+        style: "display: inline;",
+        data: { turbo_confirm: "Delete this pin?" } do %>
+      <%= submit_tag "Delete", class: "pp-btn pp-btn-danger" %>
+    <% end %>
+  </div>
+</div>
+
+<!-- Comments -->
+<div class="pp-comments" style="margin-top: 24px;">
+  <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px;">
+    Comments (<%= @pin.comments.size %>)
+  </h3>
+
+  <% if @pin.comments.empty? %>
+    <p class="pp-meta">No comments yet.</p>
+  <% else %>
+    <% @pin.comments.recent.each do |comment| %>
+      <div class="pp-comment">
+        <strong><%= comment.creator %></strong>
+        <span class="pp-meta">&middot; <%= time_ago_in_words(comment.created_at) %> ago</span>
+        <p style="margin-top: 4px;"><%= comment.body %></p>
+      </div>
+    <% end %>
+  <% end %>
+</div>
