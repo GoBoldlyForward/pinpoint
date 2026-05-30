@@ -3,14 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self';">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>pinpoint.js — in-app feedback widget with screenshots</title>
+  <meta name="description" content="Drop-in user-feedback widget. Users click anywhere on the page, capture a thumbnail, attach a comment. Pins persist in sessionStorage — no backend required.">
+  <meta name="keywords" content="in-app feedback widget, annotate webpage feedback, user feedback plugin, screenshot feedback tool, click to comment widget, web feedback javascript, page annotation tool, bug report widget, no-backend feedback, pin to page feedback">
+  <meta name="author" content="Go Boldly Forward">
 
-  <title>pinpoint — drop-in feedback widget</title>
-  <meta name="description" content="A floating button lets users click anywhere on a page, capture a 200x200 thumbnail, and attach a comment. Pins persist in sessionStorage by default — no backend required.">
+  <link rel="canonical" href="https://goboldlyforward.github.io/pinpoint/">
 
-  <meta property="og:title" content="pinpoint — drop-in feedback widget">
-  <meta property="og:description" content="A floating button lets users click anywhere on a page, capture a 200x200 thumbnail, and attach a comment. Pins persist in sessionStorage by default — no backend required.">
   <meta property="og:type" content="website">
+  <meta property="og:title" content="pinpoint.js — in-app feedback widget with screenshots">
+  <meta property="og:description" content="Drop-in user-feedback widget. Users click anywhere on the page, capture a thumbnail, attach a comment. Pins persist in sessionStorage — no backend required.">
   <meta property="og:url" content="https://goboldlyforward.github.io/pinpoint/">
+  <meta property="og:site_name" content="Go Boldly Forward Plugins">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="pinpoint.js — in-app feedback widget with screenshots">
+  <meta name="twitter:description" content="Drop-in user-feedback widget. Users click anywhere on the page, capture a thumbnail, attach a comment. Pins persist in sessionStorage — no backend required.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "pinpoint.js",
+    "description": "Drop-in user-feedback widget. Users click anywhere on the page, capture a thumbnail, attach a comment. Pins persist in sessionStorage — no backend required.",
+    "url": "https://goboldlyforward.github.io/pinpoint/",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "Go Boldly Forward",
+      "url": "https://goboldlyforward.com"
+    },
+    "keywords": "in-app feedback widget, annotate webpage feedback, user feedback plugin, screenshot feedback tool, click to comment widget, web feedback javascript, page annotation tool, bug report widget, no-backend feedback, pin to page feedback"
+  }
+  </script>
 
   <link rel="preconnect" href="https://rsms.me/">
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
@@ -24,10 +57,14 @@
       --gbf-accent-soft: rgba(220, 38, 38, 0.10);
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme]) {
         --gbf-accent:      #f87171;
         --gbf-accent-soft: rgba(248, 113, 113, 0.14);
       }
+    }
+    :root[data-theme="dark"] {
+      --gbf-accent:      #f87171;
+      --gbf-accent-soft: rgba(248, 113, 113, 0.14);
     }
 
     .gbf-section h3 {
@@ -117,11 +154,14 @@
   </style>
 </head>
 <body>
+  <button class="gbf-theme-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+    <span class="gbf-theme-toggle__icon" aria-hidden="true">☾</span>
+  </button>
 
   <header class="gbf-header">
     <div class="gbf-container">
       <p class="gbf-eyebrow">Plugin</p>
-      <h1 class="gbf-title">pinpoint</h1>
+      <h1 class="gbf-title">pinpoint<span class="gbf-title__accent">.js</span></h1>
       <p class="gbf-tagline">Drop-in feedback widget. A floating button lets your users click anywhere on a page, capture a 400&times;200 thumbnail of the area, and attach a comment. Pins persist in <code>sessionStorage</code> by default — no backend required.</p>
       <code class="gbf-install">npm install @goboldlyforward/pinpoint</code>
       <nav class="gbf-nav">
@@ -133,6 +173,7 @@
     </div>
   </header>
 
+  <main>
   <section class="gbf-section">
     <div class="gbf-container">
       <p class="gbf-eyebrow gbf-eyebrow--accent">Demo</p>
@@ -141,30 +182,30 @@
 
       <div class="pinpoint-demo">
         <div class="pinpoint-demo__card">
-          <h4>Login form</h4>
+          <h3>Login form</h3>
           <p>A sample form to leave feedback on. Try dropping a pin on the misaligned button.</p>
           <div class="pinpoint-demo__stub">
-            <input type="text" placeholder="Email">
-            <button class="is-primary" style="margin-left: 8px; position: relative; top: 3px;">Sign in</button>
+            <input type="text" name="email" aria-label="Email" placeholder="Email">
+            <button type="button" class="is-primary" style="margin-left: 8px; position: relative; top: 3px;">Sign in</button>
           </div>
         </div>
 
         <div class="pinpoint-demo__card">
-          <h4>Hero image</h4>
+          <h3>Hero image</h3>
           <p>Pretend this is a marketing hero. Pin the copy, the placeholder, or the spacing.</p>
           <div class="pinpoint-demo__placeholder">[ hero image goes here ]</div>
         </div>
 
         <div class="pinpoint-demo__card">
-          <h4>Pricing card</h4>
+          <h3>Pricing card</h3>
           <p>$19 / month for the basic plan. Want to flag a confusing label or a typo? Drop a pin.</p>
           <div class="pinpoint-demo__stub">
-            <button>Choose plan</button>
+            <button type="button">Choose plan</button>
           </div>
         </div>
 
         <div class="pinpoint-demo__card">
-          <h4>Empty state</h4>
+          <h3>Empty state</h3>
           <p>Empty states are notoriously bad. Pin the parts that would confuse a first-time user.</p>
           <div class="pinpoint-demo__placeholder">No items yet.</div>
         </div>
@@ -214,7 +255,7 @@
   onPinClick:      (pin) =&gt; {},                                    // hook: marker opened
 });</code></pre>
 
-      <h2 class="gbf-section__title" style="margin-top: 2.5rem;">Methods</h2>
+      <h3 class="gbf-section__title" style="margin-top: 2.5rem;">Methods</h3>
       <pre class="gbf-code"><code>pinpoint.enable();         // enter pin mode
 pinpoint.disable();        // leave pin mode
 pinpoint.toggle();
@@ -250,6 +291,7 @@ pinpoint.destroy();        // unmount + unbind</code></pre>
 }</code></pre>
     </div>
   </section>
+  </main>
 
   <footer class="gbf-footer">
     <div class="gbf-container gbf-footer__row">
@@ -260,6 +302,27 @@ pinpoint.destroy();        // unmount + unbind</code></pre>
   <script src="pinpoint.js"></script>
   <script>
     document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    (() => {
+      const root = document.documentElement;
+      const toggle = document.querySelector('.gbf-theme-toggle');
+      const icon = toggle.querySelector('.gbf-theme-toggle__icon');
+      const apply = (theme) => {
+        root.setAttribute('data-theme', theme);
+        const isDark = theme === 'dark';
+        icon.textContent = isDark ? '☀' : '☾';
+        toggle.setAttribute('aria-pressed', String(isDark));
+        toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      };
+      const stored = localStorage.getItem('gbf-theme');
+      const initial = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      apply(initial);
+      toggle.addEventListener('click', () => {
+        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        apply(next);
+        localStorage.setItem('gbf-theme', next);
+      });
+    })();
 
     window.pinpoint = new Pinpoint({
       position: 'bottom-left',

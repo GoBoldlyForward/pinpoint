@@ -15,6 +15,11 @@
   const POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right"];
   const STORAGE_TYPES = ["session", "local", "memory"];
 
+  // Only local schemes — a remote URL in pin.thumbnail would be an XSS / leak vector.
+  function isSafeThumbnail(v) {
+    return typeof v === "string" && (v.startsWith("data:image/") || v.startsWith("blob:"));
+  }
+
   const DEFAULTS = {
     position: "bottom-left",
     storage: "session",
@@ -24,6 +29,8 @@
     screenshotHeight: 200,
     html2canvasUrl:
       "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",
+    html2canvasIntegrity:
+      "sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H",
     keyboardTrigger: null,
     autoStart: true,
     showMarkers: true,
@@ -166,7 +173,15 @@
       try {
         const data = typeof json === "string" ? JSON.parse(json) : json;
         if (!Array.isArray(data)) throw new Error("expected array of pins");
-        this.pins = data.filter((p) => p && typeof p === "object" && p.id);
+        this.pins = data
+          .filter((p) => p && typeof p === "object" && p.id)
+          .map((p) => {
+            // Strip any thumbnail that isn't a local data: or blob: URL.
+            if (p.thumbnail != null && !isSafeThumbnail(p.thumbnail)) {
+              return Object.assign({}, p, { thumbnail: null });
+            }
+            return p;
+          });
         this._persistPins();
         this._renderAllPins();
         this._refreshPanel();
@@ -315,7 +330,8 @@
       const count = this.pins.length;
       const positionButtons = POSITIONS.map((p) => {
         const active = p === this.opts.position ? " is-active" : "";
-        return `<button type="button" class="pinpoint-pos${active}" data-pos="${p}" aria-label="${p}" title="${p}"><span class="pinpoint-pos__dot pinpoint-pos__dot--${p}"></span></button>`;
+        const pa = _escapeAttr(p);
+        return `<button type="button" class="pinpoint-pos${active}" data-pos="${pa}" aria-label="${pa}" title="${pa}"><span class="pinpoint-pos__dot pinpoint-pos__dot--${pa}"></span></button>`;
       }).join("");
       const list =
         count === 0
@@ -327,12 +343,13 @@
                     ? pin.body.slice(0, 80) + "…"
                     : pin.body
                   : "<em>no comment</em>";
-                return `<li class="pinpoint-panel__item" data-pin-id="${pin.id}">
-                  <button type="button" class="pinpoint-panel__open" data-pin-id="${pin.id}" aria-label="Open pin ${idx + 1}">
+                const idAttr = _escapeAttr(pin.id);
+                return `<li class="pinpoint-panel__item" data-pin-id="${idAttr}">
+                  <button type="button" class="pinpoint-panel__open" data-pin-id="${idAttr}" aria-label="Open pin ${idx + 1}">
                     <span class="pinpoint-panel__num">${idx + 1}</span>
                     <span class="pinpoint-panel__preview">${_escape(preview)}</span>
                   </button>
-                  <button type="button" class="pinpoint-panel__del" data-pin-id="${pin.id}" aria-label="Delete pin ${idx + 1}">${ICON_CLOSE}</button>
+                  <button type="button" class="pinpoint-panel__del" data-pin-id="${idAttr}" aria-label="Delete pin ${idx + 1}">${ICON_CLOSE}</button>
                 </li>`;
               })
               .join("");
@@ -489,8 +506,8 @@
       dialog.setAttribute("role", "dialog");
       dialog.style.left = pin.x + "px";
       dialog.style.top = pin.y + "px";
-      const thumb = pin.thumbnail
-        ? `<img class="pinpoint-dialog__thumb" src="${pin.thumbnail}" alt="Screenshot of selected area">`
+      const thumb = isSafeThumbnail(pin.thumbnail)
+        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" alt="Screenshot of selected area">`
         : `<div class="pinpoint-dialog__thumb pinpoint-dialog__thumb--placeholder" aria-hidden="true">No screenshot</div>`;
       dialog.innerHTML = `
         ${thumb}
@@ -547,8 +564,8 @@
       dialog.setAttribute("role", "dialog");
       dialog.style.left = pin.x + "px";
       dialog.style.top = pin.y + "px";
-      const thumb = pin.thumbnail
-        ? `<img class="pinpoint-dialog__thumb" src="${pin.thumbnail}" alt="Screenshot of pin area">`
+      const thumb = isSafeThumbnail(pin.thumbnail)
+        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" alt="Screenshot of pin area">`
         : "";
       const date = new Date(pin.createdAt).toLocaleString();
       const body = pin.body
@@ -598,6 +615,9 @@
         script.src = this.opts.html2canvasUrl;
         script.async = true;
         script.crossOrigin = "anonymous";
+        if (this.opts.html2canvasIntegrity) {
+          script.integrity = this.opts.html2canvasIntegrity;
+        }
         script.onload = () => resolve();
         script.onerror = () => reject(new Error("failed to load html2canvas"));
         document.head.appendChild(script);
@@ -802,6 +822,9 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
+
+  // Defense-in-depth for values interpolated into HTML attributes.
+  const _escapeAttr = _escape;
 
   function _safeStorage(store) {
     try {
