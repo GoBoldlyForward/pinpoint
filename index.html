@@ -178,7 +178,7 @@
     <div class="gbf-container">
       <p class="gbf-eyebrow gbf-eyebrow--accent">Demo</p>
       <h2 class="gbf-section__title">Click the pin, drop feedback anywhere</h2>
-      <p class="gbf-section__lede">The trigger button is live in the bottom-left corner of this page. Click it: the panel opens and pin mode is on — click anywhere on the page to drop a pin. Click the trigger again to exit. Pins persist in this tab until you close it.</p>
+      <p class="gbf-section__lede">Two pins are already on this page — click a numbered marker to read its comment. Then click the trigger button in the bottom-left to drop your own: the panel opens and pin mode is on, so a click anywhere on the page drops a pin. Click the trigger again to exit. Pins persist in this tab until you close it.</p>
 
       <div class="pinpoint-demo">
         <div class="pinpoint-demo__card">
@@ -329,6 +329,84 @@ pinpoint.destroy();        // unmount + unbind</code></pre>
       storage:  'session',
       keyboardTrigger: 'shift+meta+f',
     });
+
+    // Seed two example pins so first-time visitors immediately see what a
+    // dropped pin looks like. Runs after the widget has loaded its pins and
+    // only when the visitor has none of their own (sessionStorage), so a
+    // returning visitor's pins are never clobbered.
+    (() => {
+      const seedDemoPins = () => {
+        if (window.pinpoint.getPins().length !== 0) return;
+
+        const tagline = document.querySelector('.gbf-tagline code');
+        const signin = document.querySelector('.pinpoint-demo__card .is-primary');
+        if (!tagline || !signin) return;
+
+        // Marker teardrops point their tip at (x, y) — document-absolute px.
+        const tipAt = (el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            x: Math.round(r.left + window.scrollX + r.width / 2),
+            y: Math.round(r.top + window.scrollY + r.height / 2),
+          };
+        };
+
+        const de = document.documentElement;
+        const docDims = {
+          width: Math.max(de.scrollWidth, de.clientWidth),
+          height: Math.max(de.scrollHeight, de.clientHeight),
+        };
+        const viewport = { width: window.innerWidth, height: window.innerHeight };
+
+        const makePin = (id, el, body, minutesAgo) => {
+          const { x, y } = tipAt(el);
+          return {
+            id,
+            x,
+            y,
+            xPercent: docDims.width ? x / docDims.width : 0,
+            yPercent: docDims.height ? y / docDims.height : 0,
+            viewport,
+            document: docDims,
+            body,
+            thumbnail: null,
+            pageUrl: location.href,
+            pageTitle: document.title,
+            createdAt: new Date(Date.now() - minutesAgo * 60000).toISOString(),
+          };
+        };
+
+        window.pinpoint.importJSON([
+          makePin(
+            'pin-demo-tagline',
+            tagline,
+            '"sessionStorage" won\'t mean much to non-devs. Could the tagline just say "pins stay until you close the tab"?',
+            38,
+          ),
+          makePin(
+            'pin-demo-signin',
+            signin,
+            'This button sits a few px too low — misaligned with the email input next to it.',
+            12,
+          ),
+        ]);
+      };
+
+      // Wait for DOMContentLoaded (the widget mounts + loads stored pins
+      // there first), then for webfonts, so measured positions match the
+      // final layout.
+      const whenFontsReady = () => {
+        const fonts = document.fonts && document.fonts.ready
+          ? document.fonts.ready
+          : Promise.resolve();
+        fonts.then(seedDemoPins);
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', whenFontsReady, { once: true });
+      } else {
+        whenFontsReady();
+      }
+    })();
   </script>
 
 </body>

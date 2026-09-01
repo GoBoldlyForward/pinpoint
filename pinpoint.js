@@ -60,6 +60,14 @@
       this._onKeyboardTrigger = this._onKeyboardTrigger.bind(this);
       this._onDocClick = this._onDocClick.bind(this);
 
+      // Instance-lifetime listeners, not start()/destroy() ones: the
+      // before-cache teardown calls destroy(), and turbo:load must survive
+      // that call to remount. Both are inert when Turbo isn't on the page.
+      this._onTurboBeforeCache = this._onTurboBeforeCache.bind(this);
+      this._onTurboLoad = this._onTurboLoad.bind(this);
+      document.addEventListener("turbo:before-cache", this._onTurboBeforeCache);
+      document.addEventListener("turbo:load", this._onTurboLoad);
+
       if (!this.opts.autoStart) return;
 
       if (document.readyState === "loading") {
@@ -101,6 +109,20 @@
       this._els = {};
       this._started = false;
       return this;
+    }
+
+    // Turbo Drive swaps <body> on navigation, discarding the widget's DOM.
+    // Tear down before the old page is cached; remount after render.
+    _onTurboBeforeCache() {
+      if (!this._started) return;
+      this._remountOnTurboLoad = true;
+      this.destroy();
+    }
+
+    _onTurboLoad() {
+      if (!this._remountOnTurboLoad) return;
+      this._remountOnTurboLoad = false;
+      this.start();
     }
 
     // ─── Public API ──────────────────────────────────────────────
@@ -268,7 +290,11 @@
       if (!this._els.layer) return;
       this._els.layer.innerHTML = "";
       if (!this.opts.showMarkers) return;
-      this.pins.forEach((pin, idx) => this._renderPin(pin, idx + 1));
+      // Markers are page-scoped, but numbering stays global so a marker's
+      // number always matches the same pin's number in the panel list.
+      this.pins.forEach((pin, idx) => {
+        if (this._samePage(pin)) this._renderPin(pin, idx + 1);
+      });
     }
 
     _renderPin(pin, number) {
@@ -282,7 +308,13 @@
         "aria-label",
         `Pin ${number}: ${pin.body ? pin.body.slice(0, 60) : "no comment"}`,
       );
-      dot.textContent = String(number);
+      // Wrap the number in an element: .pinpoint-marker rotates -45deg to
+      // form the teardrop and `.pinpoint-marker > *` counter-rotates its
+      // children upright — a bare text node would inherit the tilt.
+      const num = document.createElement("span");
+      num.className = "pinpoint-marker__num";
+      num.textContent = String(number);
+      dot.appendChild(num);
       dot.addEventListener("click", (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -397,6 +429,15 @@
         btn.addEventListener("click", () => {
           const pin = this.pins.find((p) => p.id === btn.dataset.pinId);
           if (!pin) return;
+          // Pins from other pages have no marker here — jump to their page
+          // instead (same-origin only; pageUrl is data, not trusted).
+          if (!this._samePage(pin)) {
+            try {
+              const u = new URL(pin.pageUrl, location.href);
+              if (u.origin === location.origin) location.href = u.href;
+            } catch (_) {}
+            return;
+          }
           this._closePanel();
           this._scrollToPin(pin);
           const marker = this._els.layer.querySelector(
@@ -506,8 +547,10 @@
       dialog.setAttribute("role", "dialog");
       dialog.style.left = pin.x + "px";
       dialog.style.top = pin.y + "px";
+      // width/height attributes reserve the thumb's aspect-ratio box before
+      // the data: URI decodes, so _positionDialog measures the real height.
       const thumb = isSafeThumbnail(pin.thumbnail)
-        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" alt="Screenshot of selected area">`
+        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" width="${this.opts.screenshotWidth}" height="${this.opts.screenshotHeight}" alt="Screenshot of selected area">`
         : `<div class="pinpoint-dialog__thumb pinpoint-dialog__thumb--placeholder" aria-hidden="true">No screenshot</div>`;
       dialog.innerHTML = `
         ${thumb}
@@ -565,7 +608,7 @@
       dialog.style.left = pin.x + "px";
       dialog.style.top = pin.y + "px";
       const thumb = isSafeThumbnail(pin.thumbnail)
-        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" alt="Screenshot of pin area">`
+        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" width="${this.opts.screenshotWidth}" height="${this.opts.screenshotHeight}" alt="Screenshot of pin area">`
         : "";
       const date = new Date(pin.createdAt).toLocaleString();
       const body = pin.body
@@ -737,6 +780,18 @@
     }
 
     _positionDialog(dialog, pin) {
+      // Thumbnails decode async; re-measure on load in case the decoded
+      // size differs from the box the width/height attributes reserved.
+      const thumb = dialog.querySelector("img.pinpoint-dialog__thumb");
+      if (thumb && !thumb.complete) {
+        thumb.addEventListener(
+          "load",
+          () => {
+            if (dialog.isConnected) this._positionDialog(dialog, pin);
+          },
+          { once: true },
+        );
+      }
       const rect = dialog.getBoundingClientRect();
       const viewport = this._viewportDims();
       const scrollX = window.scrollX || window.pageXOffset;
@@ -753,6 +808,20 @@
       if (top < scrollY + 8) top = scrollY + 8;
       dialog.style.left = left + "px";
       dialog.style.top = top + "px";
+    }
+
+    _samePage(pin) {
+      // Query and hash are ignored so anchor links and tracking params
+      // don't strand a pin; pins without a pageUrl show everywhere.
+      if (!pin.pageUrl) return true;
+      try {
+        const u = new URL(pin.pageUrl, location.href);
+        return (
+          u.origin === location.origin && u.pathname === location.pathname
+        );
+      } catch (_) {
+        return true;
+      }
     }
 
     _scrollToPin(pin) {

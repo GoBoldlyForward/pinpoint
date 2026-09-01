@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.1.1 — 2026-07-10
+
+### Fixed
+- The widget vanished after any Turbo Drive navigation until a hard reload:
+  Turbo swaps the whole `<body>`, discarding the widget's DOM, while the
+  embed guard kept the script from re-initializing. The widget now tears
+  itself down on `turbo:before-cache` (keeping cached snapshots clean) and
+  remounts on `turbo:load`, rendering the markers that belong to the new page.
+- Markers rendered on every page of the site: `_renderAllPins` ignored each
+  pin's `pageUrl`, so a pin dropped on one page floated at meaningless
+  coordinates on every other same-origin page that session. Markers now
+  render only on the page (origin + pathname, ignoring query and hash)
+  where the pin was dropped. The panel still lists the whole session;
+  opening a pin from another page navigates to that page.
+- Marker numbers rendered tilted. The teardrop shape comes from rotating
+  `.pinpoint-marker` by -45&deg;, and `.pinpoint-marker > *` counter-rotates
+  its children upright — but the digit was set as a bare text node, which
+  the child selector never matches. The number is now wrapped in a
+  `<span class="pinpoint-marker__num">`, so digits sit upright.
+- Pins dropped in the lower half of the viewport could push the composer's
+  Save/Cancel buttons below the fold: the dialog was positioned before its
+  data:-URI thumbnail decoded, so the measured height came up ~200px short
+  and the flip-above-the-pin logic never triggered. The thumbnail `<img>`
+  now carries width/height attributes so the dialog lays out at its final
+  size immediately, and the dialog re-positions on image load in case the
+  decoded size still differs.
+
 ## 0.1.0 — 2026-05-23
 
 Initial release. Vanilla-JS feedback widget — no framework, no build step,

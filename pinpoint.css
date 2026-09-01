@@ -4,7 +4,9 @@
  * Scoped under .pinpoint*, .pinpoint-layer, and html.pinpoint-active.
  */
 
-.pinpoint {
+/* Dialogs mount as siblings of .pinpoint, so both roots need the variables. */
+.pinpoint,
+.pinpoint-dialog {
   --pp-accent: #dc2626;
   --pp-accent-hover: #b91c1c;
   --pp-fg: #0f172a;
@@ -17,7 +19,9 @@
   --pp-radius-sm: 6px;
   --pp-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Inter",
     "Helvetica Neue", Arial, sans-serif;
+}
 
+.pinpoint {
   position: fixed;
   z-index: 2147483600;
   font-family: var(--pp-font);
@@ -27,7 +31,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .pinpoint {
+  .pinpoint,
+  .pinpoint-dialog {
     --pp-accent: #f87171;
     --pp-accent-hover: #ef4444;
     --pp-fg: #f1f5f9;
