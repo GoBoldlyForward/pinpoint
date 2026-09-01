@@ -13,6 +13,7 @@ Drop-in feedback widget for any web page. A floating trigger button lets your us
 - A 400&times;200 screenshot of the area around the click is captured (via [html2canvas](https://html2canvas.hertzen.com/), lazy-loaded from a CDN on first use).
 - A composer popover opens at the pin location for a comment. Save with the button or `Cmd/Ctrl + Enter`.
 - Pins render as numbered teardrop markers on the page. Click a marker any time to read or delete it.
+- Feedback about a **whole page** rather than a point on it goes in the panel's **Page note** zone: paste a screenshot from the clipboard, drop an image file on it, or click to browse. Notes take a comment like a pin does, but carry no coordinates and drop no marker.
 - Click the trigger again (or the panel's X) to close the panel and exit pin mode.
 - Everything persists in `sessionStorage` (configurable to `localStorage` or in-memory).
 
@@ -58,6 +59,10 @@ new Pinpoint({
   screenshotHeight: 200,           // px; min 50
   html2canvasUrl:  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   keyboardTrigger: null,           // e.g. 'shift+meta+f'
+  notes:           true,           // show the page-note drop zone
+  noteMaxEdge:     1600,           // px cap on a note image's long edge; min 200
+  noteQuality:     0.85,           // JPEG quality for note images; 0 < q <= 1
+  noteMaxBytes:    2097152,        // byte ceiling for the encoded note image
   autoStart:       true,
   showMarkers:     true,
   onPinAdd:    (pin) => {},
@@ -87,6 +92,7 @@ pinpoint.destroy();
 ```js
 {
   id:         'pin-l9wq4z-x4f2k1',
+  kind:       'pin',                     // 'pin' | 'note'
   x:          452,                       // px from document left
   y:          1280,                      // px from document top
   xPercent:   0.31,                      // x as fraction of document width
@@ -100,6 +106,30 @@ pinpoint.destroy();
   createdAt:  '2026-05-23T14:02:11.000Z',
 }
 ```
+
+A note is the same shape with `kind: 'note'`, an `id` prefixed `note-`, `null`
+for all four coordinates, and a `thumbnail` holding the whole screenshot rather
+than a crop. Pins saved before this field existed have no `kind` at all and are
+treated as `'pin'`.
+
+## Page notes
+
+Sometimes the feedback is about the screen, not a spot on it. With the panel
+open, the **Page note** zone takes an image three ways:
+
+- **Paste** — `Cmd/Ctrl + V` anywhere. On macOS `Cmd + Ctrl + Shift + 4` puts a
+  screenshot straight on the clipboard, so this is usually the fastest route.
+- **Drop** — drag an image file onto the zone.
+- **Click** — opens a file picker.
+
+Whatever arrives is re-encoded before it becomes a note: the long edge is capped
+at `noteMaxEdge` and the image is written out as JPEG at `noteQuality`. If the
+result still exceeds `noteMaxBytes`, quality drops and then dimensions shrink
+until it fits, or the drop is refused with an inline message. Retina screenshots
+are routinely several megabytes; most backends will not take that.
+
+Notes flow through `onPinAdd` exactly like pins, so a backend already receiving
+pins receives notes with no change beyond reading `kind`.
 
 ## Shipping pins to a backend
 
@@ -128,6 +158,10 @@ The pin is already in storage by the time the hook fires, so a failed POST won't
 ## Screenshots
 
 Pinpoint lazy-loads [html2canvas](https://html2canvas.hertzen.com/) from jsDelivr the first time a pin is dropped. If the CDN is blocked, or if `screenshot: false` is set, pins save without a thumbnail. The screenshot ignores the Pinpoint widget itself so it doesn't appear in the capture.
+
+Page notes need none of this — the image comes from the user's clipboard or disk,
+so html2canvas is never loaded for them and `screenshot: false` does not disable
+them. Set `notes: false` for that.
 
 ## Requirements
 
