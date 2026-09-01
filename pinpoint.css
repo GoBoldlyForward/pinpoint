@@ -216,7 +216,7 @@
   display: none;
   margin: 8px 0 0;
   font-size: 11px;
-  color: var(--pp-accent);
+  color: var(--pp-danger, var(--pp-accent));
 }
 .pinpoint-drop__error.is-visible { display: block; }
 
