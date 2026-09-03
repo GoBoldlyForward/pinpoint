@@ -1,7 +1,7 @@
 {
   "name": "@goboldlyforward/pinpoint",
-  "version": "0.1.1",
-  "description": "Drop-in feedback widget. A floating trigger button lets users click anywhere on a page, capture a 200x200 thumbnail, and attach a comment. Pins persist in sessionStorage by default — no backend required.",
+  "version": "0.2.0",
+  "description": "Drop-in feedback widget. A floating trigger button lets users click anywhere on a page, capture a thumbnail, and attach a comment — or paste a screenshot into the panel to leave a note about the whole page. Pins persist in sessionStorage by default — no backend required.",
   "main": "pinpoint.js",
   "style": "pinpoint.css",
   "files": [

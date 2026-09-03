@@ -32,6 +32,10 @@
     html2canvasIntegrity:
       "sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H",
     keyboardTrigger: null,
+    notes: true,
+    noteMaxEdge: 1600,
+    noteQuality: 0.85,
+    noteMaxBytes: 2 * 1024 * 1024,
     autoStart: true,
     showMarkers: true,
     onPinAdd: null,
@@ -43,6 +47,20 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>';
   const ICON_CLOSE =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  const ICON_IMAGE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+
+  const NOTE_SECTION_HTML = `
+    <section class="pinpoint-panel__section">
+      <label class="pinpoint-panel__label">Page note</label>
+      <div class="pinpoint-drop" tabindex="0" role="button" aria-label="Add a screenshot note: paste, drop a file, or click to browse">
+        <span class="pinpoint-drop__icon">${ICON_IMAGE}</span>
+        <span class="pinpoint-drop__title">Paste or drop a screenshot</span>
+        <span class="pinpoint-drop__hint">or click to choose a file</span>
+      </div>
+      <p class="pinpoint-drop__error" role="alert"></p>
+      <input type="file" class="pinpoint-drop__input" accept="image/*" hidden>
+    </section>`;
 
   class Pinpoint {
     constructor(options = {}) {
@@ -59,6 +77,7 @@
       this._onPageClick = this._onPageClick.bind(this);
       this._onKeyboardTrigger = this._onKeyboardTrigger.bind(this);
       this._onDocClick = this._onDocClick.bind(this);
+      this._onPaste = this._onPaste.bind(this);
 
       // Instance-lifetime listeners, not start()/destroy() ones: the
       // before-cache teardown calls destroy(), and turbo:load must survive
@@ -102,6 +121,7 @@
       document.removeEventListener("keydown", this._onEsc);
       document.removeEventListener("keydown", this._onKeyboardTrigger);
       document.removeEventListener("click", this._onDocClick, true);
+      document.removeEventListener("paste", this._onPaste);
       ["root", "layer", "composer", "details"].forEach((k) => {
         const el = this._els[k];
         if (el && el.parentNode) el.parentNode.removeChild(el);
@@ -293,6 +313,7 @@
       // Markers are page-scoped, but numbering stays global so a marker's
       // number always matches the same pin's number in the panel list.
       this.pins.forEach((pin, idx) => {
+        if (this._isNote(pin)) return;
         if (this._samePage(pin)) this._renderPin(pin, idx + 1);
       });
     }
@@ -342,11 +363,13 @@
       this._els.root.appendChild(panel);
       this._els.panel = panel;
       this._wirePanel(panel);
+      if (this.opts.notes) document.addEventListener("paste", this._onPaste);
       this._enterPinMode();
     }
 
     _closePanel() {
       if (!this._els.panel) return;
+      document.removeEventListener("paste", this._onPaste);
       this._els.panel.remove();
       this._els.panel = null;
       this._exitPinMode({ silent: true });
@@ -376,12 +399,17 @@
                     : pin.body
                   : "<em>no comment</em>";
                 const idAttr = _escapeAttr(pin.id);
+                const isNote = this._isNote(pin);
+                const label = isNote ? `note ${idx + 1}` : `pin ${idx + 1}`;
+                const badge = isNote
+                  ? `<span class="pinpoint-panel__num pinpoint-panel__num--note">${ICON_IMAGE}</span>`
+                  : `<span class="pinpoint-panel__num">${idx + 1}</span>`;
                 return `<li class="pinpoint-panel__item" data-pin-id="${idAttr}">
-                  <button type="button" class="pinpoint-panel__open" data-pin-id="${idAttr}" aria-label="Open pin ${idx + 1}">
-                    <span class="pinpoint-panel__num">${idx + 1}</span>
+                  <button type="button" class="pinpoint-panel__open" data-pin-id="${idAttr}" aria-label="Open ${label}">
+                    ${badge}
                     <span class="pinpoint-panel__preview">${_escape(preview)}</span>
                   </button>
-                  <button type="button" class="pinpoint-panel__del" data-pin-id="${idAttr}" aria-label="Delete pin ${idx + 1}">${ICON_CLOSE}</button>
+                  <button type="button" class="pinpoint-panel__del" data-pin-id="${idAttr}" aria-label="Delete ${label}">${ICON_CLOSE}</button>
                 </li>`;
               })
               .join("");
@@ -395,6 +423,7 @@
           <label class="pinpoint-panel__label">Position</label>
           <div class="pinpoint-panel__positions">${positionButtons}</div>
         </section>
+        ${this.opts.notes ? NOTE_SECTION_HTML : ""}
         <section class="pinpoint-panel__section">
           <div class="pinpoint-panel__heading">
             <label class="pinpoint-panel__label">Pins (${count})</label>
@@ -439,6 +468,10 @@
             return;
           }
           this._closePanel();
+          if (this._isNote(pin)) {
+            this._openDetails(pin, null);
+            return;
+          }
           this._scrollToPin(pin);
           const marker = this._els.layer.querySelector(
             `[data-pin-id="${pin.id}"]`,
@@ -448,6 +481,44 @@
       });
       panel.querySelectorAll(".pinpoint-panel__del").forEach((btn) => {
         btn.addEventListener("click", () => this.deletePin(btn.dataset.pinId));
+      });
+      this._wireDropZone(panel);
+    }
+
+    _wireDropZone(panel) {
+      const drop = panel.querySelector(".pinpoint-drop");
+      const input = panel.querySelector(".pinpoint-drop__input");
+      if (!drop || !input) return;
+
+      drop.addEventListener("click", () => input.click());
+      drop.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        input.click();
+      });
+      input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        // Reset first so re-picking the same file still fires change.
+        input.value = "";
+        if (file) this._handleNoteFile(file);
+      });
+
+      ["dragenter", "dragover"].forEach((type) => {
+        drop.addEventListener(type, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          drop.classList.add("is-dragging");
+        });
+      });
+      ["dragleave", "dragend"].forEach((type) => {
+        drop.addEventListener(type, () => drop.classList.remove("is-dragging"));
+      });
+      drop.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        drop.classList.remove("is-dragging");
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files[0]) this._handleNoteFile(files[0]);
       });
     }
 
@@ -495,7 +566,8 @@
       const viewport = this._viewportDims();
       const docDims = this._docDims();
       const pin = {
-        id: this._uid(),
+        id: this._uid("pin"),
+        kind: "pin",
         x: pageX,
         y: pageY,
         xPercent: docDims.width ? pageX / docDims.width : 0,
@@ -530,6 +602,7 @@
       this.pins.push(pin);
       this._persistPins();
       this._renderAllPins();
+      this._refreshPanel();
       if (typeof this.opts.onPinAdd === "function") {
         try {
           this.opts.onPinAdd(Object.assign({}, pin));
@@ -537,24 +610,155 @@
       }
     }
 
+    // ─── Notes (whole-page screenshot + comment) ─────────────────
+
+    // Pins stored before notes existed have no kind at all.
+    _isNote(pin) {
+      return Boolean(pin) && pin.kind === "note";
+    }
+
+    _onPaste(e) {
+      if (!this.opts.notes || !this._els.panel) return;
+      if (this._els.composer || this._els.details) return;
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind !== "file") continue;
+        if (!/^image\//.test(items[i].type)) continue;
+        const file = items[i].getAsFile();
+        if (!file) return;
+        e.preventDefault();
+        this._handleNoteFile(file);
+        return;
+      }
+    }
+
+    async _handleNoteFile(file) {
+      if (!file || !/^image\//.test(file.type)) {
+        this._noteError("That is not an image file.");
+        return;
+      }
+      this._noteError("");
+      this._noteBusy(true);
+      try {
+        const thumbnail = await this._normalizeImage(file);
+        this._createNote(thumbnail);
+      } catch (err) {
+        this._noteError(err.message);
+      } finally {
+        this._noteBusy(false);
+      }
+    }
+
+    _createNote(thumbnail) {
+      this._exitPinMode({ silent: true });
+      this._openComposer({
+        id: this._uid("note"),
+        kind: "note",
+        x: null,
+        y: null,
+        xPercent: null,
+        yPercent: null,
+        viewport: this._viewportDims(),
+        document: this._docDims(),
+        body: "",
+        thumbnail: thumbnail,
+        pageUrl: location.href,
+        pageTitle: document.title,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Retina screenshots routinely run several megabytes; a receiving
+    // backend usually will not take that. Shed quality first, then pixels.
+    async _normalizeImage(blob) {
+      const url = URL.createObjectURL(blob);
+      let img;
+      try {
+        img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error("That image could not be read."));
+          im.src = url;
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      if (!img.naturalWidth || !img.naturalHeight) {
+        throw new Error("That image could not be read.");
+      }
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const draw = (edge) => {
+        const longest = Math.max(img.naturalWidth, img.naturalHeight);
+        const scale = Math.min(1, edge / longest);
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        // JPEG has no alpha, so transparent pixels would encode as black.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+
+      let edge = this.opts.noteMaxEdge;
+      let quality = this.opts.noteQuality;
+      draw(edge);
+      let dataUri = canvas.toDataURL("image/jpeg", quality);
+
+      while (_dataUriBytes(dataUri) > this.opts.noteMaxBytes) {
+        if (quality > 0.4) {
+          quality -= 0.15;
+        } else if (edge > 600) {
+          edge = Math.round(edge * 0.75);
+          quality = this.opts.noteQuality;
+          draw(edge);
+        } else {
+          throw new Error("That screenshot is too large to attach.");
+        }
+        dataUri = canvas.toDataURL("image/jpeg", quality);
+      }
+      return dataUri;
+    }
+
+    _noteError(message) {
+      const el = this._els.panel &&
+        this._els.panel.querySelector(".pinpoint-drop__error");
+      if (!el) return;
+      el.textContent = message || "";
+      el.classList.toggle("is-visible", Boolean(message));
+    }
+
+    _noteBusy(busy) {
+      const drop = this._els.panel &&
+        this._els.panel.querySelector(".pinpoint-drop");
+      if (drop) drop.classList.toggle("is-busy", Boolean(busy));
+    }
+
     // ─── Composer (new-pin dialog) ──────────────────────────────
 
     _openComposer(pin, { resumePinMode = false } = {}) {
       this._closeComposer();
       this._closeDetails();
+      const isNote = this._isNote(pin);
+      const anchor = this._dialogAnchor(pin);
       const dialog = document.createElement("div");
-      dialog.className = "pinpoint-dialog pinpoint-dialog--composer";
+      dialog.className =
+        "pinpoint-dialog pinpoint-dialog--composer" +
+        (isNote ? " pinpoint-dialog--note" : "");
       dialog.setAttribute("role", "dialog");
-      dialog.style.left = pin.x + "px";
-      dialog.style.top = pin.y + "px";
-      // width/height attributes reserve the thumb's aspect-ratio box before
-      // the data: URI decodes, so _positionDialog measures the real height.
-      const thumb = isSafeThumbnail(pin.thumbnail)
-        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" width="${this.opts.screenshotWidth}" height="${this.opts.screenshotHeight}" alt="Screenshot of selected area">`
-        : `<div class="pinpoint-dialog__thumb pinpoint-dialog__thumb--placeholder" aria-hidden="true">No screenshot</div>`;
+      dialog.style.left = anchor.x + "px";
+      dialog.style.top = anchor.y + "px";
+      const thumb = this._thumbHTML(
+        pin,
+        isNote ? "Screenshot attached to this note" : "Screenshot of selected area",
+        !isNote,
+      );
+      const placeholder = isNote
+        ? "What should we know about this screen?"
+        : "Describe the issue or feedback...";
       dialog.innerHTML = `
         ${thumb}
-        <textarea class="pinpoint-dialog__body" placeholder="Describe the issue or feedback..." rows="3"></textarea>
+        <textarea class="pinpoint-dialog__body" placeholder="${placeholder}" rows="3"></textarea>
         <div class="pinpoint-dialog__actions">
           <button type="button" class="pinpoint-btn pinpoint-btn--ghost" data-action="cancel">Cancel</button>
           <button type="button" class="pinpoint-btn pinpoint-btn--primary" data-action="save">Save</button>
@@ -602,14 +806,20 @@
     _openDetails(pin, anchor) {
       this._closeDetails();
       this._closeComposer();
+      const isNote = this._isNote(pin);
+      const anchorPoint = this._dialogAnchor(pin);
       const dialog = document.createElement("div");
-      dialog.className = "pinpoint-dialog pinpoint-dialog--details";
+      dialog.className =
+        "pinpoint-dialog pinpoint-dialog--details" +
+        (isNote ? " pinpoint-dialog--note" : "");
       dialog.setAttribute("role", "dialog");
-      dialog.style.left = pin.x + "px";
-      dialog.style.top = pin.y + "px";
-      const thumb = isSafeThumbnail(pin.thumbnail)
-        ? `<img class="pinpoint-dialog__thumb" src="${_escapeAttr(pin.thumbnail)}" width="${this.opts.screenshotWidth}" height="${this.opts.screenshotHeight}" alt="Screenshot of pin area">`
-        : "";
+      dialog.style.left = anchorPoint.x + "px";
+      dialog.style.top = anchorPoint.y + "px";
+      const thumb = this._thumbHTML(
+        pin,
+        isNote ? "Screenshot attached to this note" : "Screenshot of pin area",
+        false,
+      );
       const date = new Date(pin.createdAt).toLocaleString();
       const body = pin.body
         ? `<p class="pinpoint-dialog__text">${_escape(pin.body)}</p>`
@@ -635,7 +845,7 @@
       dialog
         .querySelector('[data-action="delete"]')
         .addEventListener("click", () => {
-          if (confirm("Delete this pin?")) {
+          if (confirm(isNote ? "Delete this note?" : "Delete this pin?")) {
             this.deletePin(pin.id);
             this._closeDetails();
           }
@@ -770,6 +980,25 @@
       ) {
         this.opts.screenshotHeight = DEFAULTS.screenshotHeight;
       }
+      if (
+        typeof this.opts.noteMaxEdge !== "number" ||
+        this.opts.noteMaxEdge < 200
+      ) {
+        this.opts.noteMaxEdge = DEFAULTS.noteMaxEdge;
+      }
+      if (
+        typeof this.opts.noteQuality !== "number" ||
+        this.opts.noteQuality <= 0 ||
+        this.opts.noteQuality > 1
+      ) {
+        this.opts.noteQuality = DEFAULTS.noteQuality;
+      }
+      if (
+        typeof this.opts.noteMaxBytes !== "number" ||
+        this.opts.noteMaxBytes < 50 * 1024
+      ) {
+        this.opts.noteMaxBytes = DEFAULTS.noteMaxBytes;
+      }
     }
 
     _isInsideWidget(node) {
@@ -777,6 +1006,37 @@
       return Boolean(
         node.closest(".pinpoint, .pinpoint-dialog, .pinpoint-marker"),
       );
+    }
+
+    // Pin thumbs are a fixed crop, so width/height attributes reserve the
+    // box before the data: URI decodes. A note keeps the screenshot's own
+    // ratio instead and _positionDialog re-measures once it loads.
+    _thumbHTML(pin, alt, placeholder) {
+      if (!isSafeThumbnail(pin.thumbnail)) {
+        return placeholder
+          ? `<div class="pinpoint-dialog__thumb pinpoint-dialog__thumb--placeholder" aria-hidden="true">No screenshot</div>`
+          : "";
+      }
+      const isNote = this._isNote(pin);
+      const cls = isNote
+        ? "pinpoint-dialog__thumb pinpoint-dialog__thumb--note"
+        : "pinpoint-dialog__thumb";
+      const dims = isNote
+        ? ""
+        : ` width="${this.opts.screenshotWidth}" height="${this.opts.screenshotHeight}"`;
+      return `<img class="${cls}" src="${_escapeAttr(pin.thumbnail)}"${dims} alt="${_escapeAttr(alt)}">`;
+    }
+
+    // Notes belong to the page, not a point on it, so their dialogs hang
+    // off the widget itself.
+    _dialogAnchor(pin) {
+      if (!this._isNote(pin)) return { x: pin.x, y: pin.y };
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+      const el = this._els.panel || this._els.trigger;
+      if (!el) return { x: scrollX + 24, y: scrollY + 24 };
+      const rect = el.getBoundingClientRect();
+      return { x: rect.right + scrollX, y: rect.top + scrollY };
     }
 
     _positionDialog(dialog, pin) {
@@ -796,14 +1056,15 @@
       const viewport = this._viewportDims();
       const scrollX = window.scrollX || window.pageXOffset;
       const scrollY = window.scrollY || window.pageYOffset;
-      let left = pin.x + 16;
-      let top = pin.y + 16;
+      const anchor = this._dialogAnchor(pin);
+      let left = anchor.x + 16;
+      let top = anchor.y + 16;
       if (left + rect.width > scrollX + viewport.width - 8) {
-        left = pin.x - rect.width - 16;
+        left = anchor.x - rect.width - 16;
       }
       if (left < scrollX + 8) left = scrollX + 8;
       if (top + rect.height > scrollY + viewport.height - 8) {
-        top = pin.y - rect.height - 16;
+        top = anchor.y - rect.height - 16;
       }
       if (top < scrollY + 8) top = scrollY + 8;
       dialog.style.left = left + "px";
@@ -848,9 +1109,10 @@
       };
     }
 
-    _uid() {
+    _uid(prefix = "pin") {
       return (
-        "pin-" +
+        prefix +
+        "-" +
         Date.now().toString(36) +
         "-" +
         Math.random().toString(36).slice(2, 8)
@@ -894,6 +1156,12 @@
 
   // Defense-in-depth for values interpolated into HTML attributes.
   const _escapeAttr = _escape;
+
+  function _dataUriBytes(dataUri) {
+    const base64 = dataUri.slice(dataUri.indexOf(",") + 1);
+    const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+    return Math.floor((base64.length * 3) / 4) - padding;
+  }
 
   function _safeStorage(store) {
     try {

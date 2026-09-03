@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.0 — 2026-09-01
+
+### Added
+- **Page notes.** Feedback about a whole screen no longer has to be pinned to
+  an arbitrary point on it. With the panel open, the new **Page note** zone
+  accepts an image by paste (`Cmd/Ctrl + V`), by drag-and-drop, or by file
+  picker, then opens the usual composer for a comment. Notes carry `kind:
+  'note'`, `null` coordinates, and no page marker; pins gain `kind: 'pin'`.
+  Anything already stored without a `kind` is read as a pin.
+- Note images are re-encoded before they are stored: capped at `noteMaxEdge`
+  on the long edge and written as JPEG at `noteQuality`, then shrunk further
+  if needed to fit `noteMaxBytes`. A retina screenshot is routinely several
+  megabytes, which most backends receiving `onPinAdd` will reject.
+- New options: `notes`, `noteMaxEdge`, `noteQuality`, `noteMaxBytes`.
+
+### Fixed
+- The panel's pin list went stale after saving: `_savePin` re-rendered the
+  page markers but never the panel, so a pin dropped with the panel open did
+  not appear in the list (nor did the count change) until the panel was
+  closed and reopened.
+
 ## 0.1.1 — 2026-07-10
 
 ### Fixed
